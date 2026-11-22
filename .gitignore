@@ -1,0 +1,28 @@
+# Python & Virtual Environment
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive Environment & Secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Data and Local Database (optional - can keep or ignore generated db)
+*.duckdb.tmp
+*.duckdb.wal
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs & Audit
+logs/
+*.log

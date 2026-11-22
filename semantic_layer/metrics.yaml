@@ -1,0 +1,67 @@
+# Semantic Layer (Metric Dictionary)
+# Defines business terms, formulas, and time periods to prevent LLM hallucinations.
+
+metrics:
+  active_user:
+    definition: "User with at least one event in the last 30 days"
+    sql: "COUNT(DISTINCT user_id) FILTER (WHERE event_timestamp >= CURRENT_DATE - INTERVAL '30 days')"
+    table: "events"
+
+  conversion_rate:
+    definition: "Purchasers divided by unique visitors (percentage)"
+    sql: "ROUND(100.0 * COUNT(DISTINCT CASE WHEN event_type = 'purchase' THEN user_id END) / NULLIF(COUNT(DISTINCT user_id), 0), 2)"
+    table: "events"
+
+  revenue:
+    definition: "Sum of order amount where status is completed"
+    sql: "ROUND(SUM(amount), 2)"
+    filter: "status = 'completed'"
+    table: "orders"
+
+  total_orders:
+    definition: "Count of all completed orders"
+    sql: "COUNT(*)"
+    filter: "status = 'completed'"
+    table: "orders"
+
+  average_order_value:
+    definition: "Total revenue divided by count of completed orders (AOV)"
+    sql: "ROUND(AVG(amount), 2)"
+    filter: "status = 'completed'"
+    table: "orders"
+
+  cart_abandonment_rate:
+    definition: "Users who added items to cart but did not purchase"
+    sql: "ROUND(100.0 * (COUNT(DISTINCT CASE WHEN event_type = 'add_to_cart' THEN user_id END) - COUNT(DISTINCT CASE WHEN event_type = 'purchase' THEN user_id END)) / NULLIF(COUNT(DISTINCT CASE WHEN event_type = 'add_to_cart' THEN user_id END), 0), 2)"
+    table: "events"
+
+  signups:
+    definition: "Count of newly registered users"
+    sql: "COUNT(user_id)"
+    table: "users"
+
+  retention_rate_week_1:
+    definition: "Percentage of users who returned in week 1 after signup"
+    table: "users JOIN events ON users.user_id = events.user_id"
+
+synonyms:
+  sales: "revenue"
+  income: "revenue"
+  earnings: "revenue"
+  customers: "users"
+  clients: "users"
+  buyers: "users"
+  transactions: "orders"
+  purchases: "orders"
+  checkouts: "checkout_start"
+  visitors: "users"
+
+time_rules:
+  last_month: "date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' <= event_timestamp AND event_timestamp < date_trunc('month', CURRENT_DATE)"
+  this_month: "event_timestamp >= date_trunc('month', CURRENT_DATE)"
+  this_quarter: "event_timestamp >= date_trunc('quarter', CURRENT_DATE)"
+  last_quarter: "event_timestamp >= date_trunc('quarter', CURRENT_DATE) - INTERVAL '3 months' AND event_timestamp < date_trunc('quarter', CURRENT_DATE)"
+  last_7_days: "event_timestamp >= CURRENT_DATE - INTERVAL '7 days'"
+  last_30_days: "event_timestamp >= CURRENT_DATE - INTERVAL '30 days'"
+  last_90_days: "event_timestamp >= CURRENT_DATE - INTERVAL '90 days'"
+  this_year: "event_timestamp >= date_trunc('year', CURRENT_DATE)"
