@@ -236,3 +236,4 @@ if user_query:
         except Exception as e:
             status_box.update(label="Error processing query", state="error", expanded=True)
             st.error(f"Failed to process query: {str(e)}")
+

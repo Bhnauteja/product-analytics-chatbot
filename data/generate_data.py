@@ -270,3 +270,4 @@ def generate_dataset(num_users: int = 15000, days_history: int = 120):
 
 if __name__ == "__main__":
     generate_dataset()
+

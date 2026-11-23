@@ -93,3 +93,4 @@ def test_allow_complex_joins():
     assert result.is_valid is True
     assert "orders" in result.tables_used
     assert "products" in result.tables_used
+

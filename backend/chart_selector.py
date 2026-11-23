@@ -234,3 +234,4 @@ def select_chart(columns: List[str], rows: List[List[Any]], question_hint: str =
         "title": "Data Table",
         "spec": {"columns": columns, "rows": rows}
     }
+

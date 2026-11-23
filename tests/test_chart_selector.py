@@ -60,3 +60,4 @@ def test_large_dataset_table_fallback():
     rows = [[f"usr_{i}", f"user{i}@test.com"] for i in range(60)]
     chart = select_chart(columns, rows)
     assert chart["type"] == "table"
+

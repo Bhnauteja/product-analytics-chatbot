@@ -195,3 +195,4 @@ Please correct the column names or SQL syntax. Return JSON: {{"sql": "<corrected
             "latency_ms": total_latency_ms,
             "error": None
         }
+

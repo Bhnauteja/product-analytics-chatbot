@@ -141,3 +141,4 @@ examples:
       GROUP BY u.device
       ORDER BY total_revenue DESC
       LIMIT 1000;
+

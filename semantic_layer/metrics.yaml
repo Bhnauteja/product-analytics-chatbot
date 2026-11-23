@@ -65,3 +65,4 @@ time_rules:
   last_30_days: "event_timestamp >= CURRENT_DATE - INTERVAL '30 days'"
   last_90_days: "event_timestamp >= CURRENT_DATE - INTERVAL '90 days'"
   this_year: "event_timestamp >= date_trunc('year', CURRENT_DATE)"
+

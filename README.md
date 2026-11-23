@@ -118,3 +118,4 @@ python evals/run_evals.py
 3. **Funnels & Drop-Off**: "Where do users drop off in checkout?" $\to$ Funnel Bar Chart
 4. **Retention / Cohorts**: "Week-1 retention by signup month" $\to$ Cohort Chart
 5. **Segment Comparisons**: "Compare mobile vs desktop conversion" $\to$ Grouped Bar / Pie Chart
+

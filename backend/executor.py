@@ -90,3 +90,4 @@ def execute_query(
     finally:
         if con:
             con.close()
+

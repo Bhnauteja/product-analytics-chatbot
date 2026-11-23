@@ -58,3 +58,4 @@ EXECUTIVE INSIGHT:"""
         # Robust fallback based on first row
         first_row = rows[0]
         return f"Query returned {len(rows)} record(s). Top item: {first_row[0]} with {first_row[-1]}."
+
