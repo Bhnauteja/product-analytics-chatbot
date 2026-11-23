@@ -32,7 +32,11 @@ def execute_query(
         }
     """
     if not os.path.exists(db_path):
-        raise QueryExecutionError(f"Database file not found at '{db_path}'. Please run the data generator first.")
+        try:
+            from data.generate_data import generate_dataset
+            generate_dataset(num_users=5000, days_history=90)
+        except Exception as e:
+            raise QueryExecutionError(f"Database file not found at '{db_path}' and auto-initialization failed: {e}")
 
     start_time = time.perf_counter()
     con = None
