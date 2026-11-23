@@ -103,3 +103,12 @@ def test_dynamic_custom_table_registration():
     assert result.is_valid is True
     assert "kaggle_superstore" in result.tables_used
 
+def test_pipeline_query_caching():
+    from backend.pipeline import AnalyticsPipeline
+    pipe = AnalyticsPipeline()
+    res1 = pipe.process_question("Daily active users over the last 30 days")
+    assert res1.get("cached") is not True
+    res2 = pipe.process_question("Daily active users over the last 30 days")
+    assert res2.get("cached") is True
+    assert res2.get("latency_ms") < 15
+

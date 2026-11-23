@@ -27,6 +27,7 @@ MAX_SELF_REPAIR_RETRIES = 2
 class AnalyticsPipeline:
     def __init__(self, llm_provider: Optional[str] = None):
         self.llm_client = LLMClient(provider=llm_provider)
+        self.query_cache: Dict[str, Dict[str, Any]] = {}
 
     def process_question(
         self,
@@ -40,6 +41,16 @@ class AnalyticsPipeline:
         start_time = time.perf_counter()
         answer_id = f"ans_{uuid.uuid4().hex[:8]}"
         session_id = session_id or f"sess_{uuid.uuid4().hex[:8]}"
+
+        # Query Cache Check (instant sub-5ms response for repeated queries)
+        cache_key = question.strip().lower()
+        if not history and cache_key in self.query_cache:
+            cached = dict(self.query_cache[cache_key])
+            cached["answer_id"] = answer_id
+            cached["session_id"] = session_id
+            cached["latency_ms"] = round((time.perf_counter() - start_time) * 1000, 2)
+            cached["cached"] = True
+            return cached
 
         # 1. Build Prompt & Call LLM
         prompt = build_sql_prompt(question, history=history)
@@ -183,7 +194,7 @@ Please correct the column names or SQL syntax. Return JSON: {{"sql": "<corrected
             "chart_type": chart_spec.get("type", "table")
         })
 
-        return {
+        final_response = {
             "answer_id": answer_id,
             "session_id": session_id,
             "question": question,
@@ -195,4 +206,10 @@ Please correct the column names or SQL syntax. Return JSON: {{"sql": "<corrected
             "latency_ms": total_latency_ms,
             "error": None
         }
+
+        # Cache valid response
+        if not history:
+            self.query_cache[cache_key] = final_response
+
+        return final_response
 
