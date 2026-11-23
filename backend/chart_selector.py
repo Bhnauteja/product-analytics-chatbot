@@ -191,6 +191,33 @@ def select_chart(columns: List[str], rows: List[List[Any]], question_hint: str =
             }
         }
 
+    # 3b. 1 Category column + Multiple Numeric columns -> Grouped Bar Chart
+    if len(category_cols) == 1 and len(numeric_cols) > 1:
+        cat_idx = category_cols[0]
+        categories = [str(r[cat_idx]) if r[cat_idx] is not None else "(Unknown)" for r in rows]
+        traces = []
+        for n_idx in numeric_cols:
+            series_name = columns[n_idx].replace('_', ' ').title()
+            vals = [r[n_idx] for r in rows]
+            traces.append({
+                "x": categories,
+                "y": vals,
+                "name": series_name,
+                "type": "bar"
+            })
+        return {
+            "type": "bar",
+            "title": f"Metrics by {columns[cat_idx].replace('_', ' ').title()}",
+            "spec": {
+                "data": traces,
+                "layout": {
+                    "barmode": "group",
+                    "xaxis": {"title": columns[cat_idx].replace('_', ' ').title()},
+                    "template": "plotly_white"
+                }
+            }
+        }
+
     # 4. 2 Categories + 1 Numeric Column -> Grouped / Stacked Bar
     if len(category_cols) == 2 and len(numeric_cols) == 1:
         cat1_idx = category_cols[0]

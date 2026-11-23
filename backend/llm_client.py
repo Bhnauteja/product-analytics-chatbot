@@ -250,7 +250,40 @@ class LLMClient:
                 "clarifying_question": None
             }
 
-        # 13. Total revenue / KPI
+        # 13. Kaggle Superstore Dataset queries
+        if "superstore" in target or ("sales" in target and ("categor" in target or "region" in target or "profit" in target)):
+            if "region" in target:
+                return {
+                    "sql": "SELECT region, ROUND(SUM(sales), 2) AS total_sales, ROUND(SUM(profit), 2) AS total_profit FROM superstore_kaggle_sample GROUP BY region ORDER BY total_profit DESC LIMIT 10;",
+                    "needs_clarification": False,
+                    "clarifying_question": None
+                }
+            elif "sub" in target:
+                return {
+                    "sql": "SELECT sub_category, ROUND(SUM(sales), 2) AS total_sales, ROUND(SUM(profit), 2) AS total_profit FROM superstore_kaggle_sample GROUP BY sub_category ORDER BY total_sales DESC LIMIT 10;",
+                    "needs_clarification": False,
+                    "clarifying_question": None
+                }
+            elif "categor" in target:
+                return {
+                    "sql": "SELECT category, ROUND(SUM(sales), 2) AS total_sales, ROUND(SUM(profit), 2) AS total_profit FROM superstore_kaggle_sample GROUP BY category ORDER BY total_sales DESC LIMIT 10;",
+                    "needs_clarification": False,
+                    "clarifying_question": None
+                }
+            elif "segment" in target:
+                return {
+                    "sql": "SELECT segment, COUNT(*) AS total_orders, ROUND(SUM(sales), 2) AS total_sales FROM superstore_kaggle_sample GROUP BY segment ORDER BY total_sales DESC LIMIT 10;",
+                    "needs_clarification": False,
+                    "clarifying_question": None
+                }
+            else:
+                return {
+                    "sql": "SELECT category, ROUND(SUM(sales), 2) AS total_sales, ROUND(SUM(profit), 2) AS total_profit FROM superstore_kaggle_sample GROUP BY category ORDER BY total_sales DESC LIMIT 10;",
+                    "needs_clarification": False,
+                    "clarifying_question": None
+                }
+
+        # 14. Total revenue / KPI
         if "total revenue" in target or "how much revenue" in target or "sales" in target:
             return {
                 "sql": "SELECT ROUND(SUM(amount), 2) AS total_revenue FROM orders WHERE status = 'completed' LIMIT 1;",

@@ -21,7 +21,8 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from backend.pipeline import AnalyticsPipeline
-from backend.sql_validator import ALLOWED_SCHEMA
+from backend.sql_validator import get_allowed_schema
+from backend.executor import ingest_dataframe_to_duckdb
 from backend.logger import update_feedback
 
 st.set_page_config(
@@ -95,9 +96,41 @@ with st.sidebar:
     st.markdown('<span class="security-badge" style="background-color:#1E3A8A;color:#93C5FD;">● AST SQL Validator Active</span>', unsafe_allow_html=True)
 
     st.markdown("---")
+    st.subheader("📤 Ingest Custom Data (CSV / Kaggle)")
+    st.caption("Upload your own CSV or test with a Kaggle dataset:")
+    
+    # Kaggle one-click sample loader
+    kaggle_csv_path = os.path.join(PROJECT_ROOT, "data", "sample_kaggle", "superstore_kaggle_sample.csv")
+    if os.path.exists(kaggle_csv_path):
+        if st.button("⚡ Load Kaggle Superstore Sample", use_container_width=True):
+            k_df = pd.read_csv(kaggle_csv_path)
+            res = ingest_dataframe_to_duckdb(k_df, "superstore_kaggle_sample")
+            st.session_state.custom_loaded = "superstore_kaggle_sample"
+            st.toast(f"Loaded Kaggle Superstore ({res['row_count']} rows)!", icon="📊")
+            st.rerun()
+
+    # Generic CSV Uploader
+    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+    if uploaded_file is not None:
+        file_key = f"uploaded_{uploaded_file.name}"
+        if file_key not in st.session_state:
+            try:
+                up_df = pd.read_csv(uploaded_file)
+                base_name = uploaded_file.name.rsplit(".", 1)[0]
+                res = ingest_dataframe_to_duckdb(up_df, base_name)
+                st.session_state[file_key] = True
+                st.session_state.custom_loaded = res["table_name"]
+                st.success(f"Ingested '{res['table_name']}' ({res['row_count']:,} rows)")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to ingest CSV: {e}")
+
+    st.markdown("---")
     st.subheader("📚 Available Data Schema")
-    for tbl_name, cols in sorted(ALLOWED_SCHEMA.items()):
-        with st.expander(f"📁 {tbl_name} ({len(cols)} cols)"):
+    current_schema = get_allowed_schema()
+    for tbl_name, cols in sorted(current_schema.items()):
+        badge = " [Custom]" if tbl_name not in ["users", "events", "orders", "products", "sessions"] else ""
+        with st.expander(f"📁 {tbl_name}{badge} ({len(cols)} cols)"):
             for col in sorted(list(cols)):
                 st.code(col, language="text")
 
@@ -119,7 +152,7 @@ st.title("📊 Product Analytics Chatbot")
 st.markdown("Ask any question about your product metrics, users, funnels, or revenue in plain English.")
 
 # Suggested Questions Row
-suggested_questions = [
+base_suggestions = [
     "Show weekly signups for the last 3 months",
     "Top 5 countries by signups last month",
     "Where do users drop off in checkout?",
@@ -127,6 +160,15 @@ suggested_questions = [
     "Top 10 products by revenue",
     "Total revenue from completed orders"
 ]
+
+if "superstore_kaggle_sample" in current_schema:
+    suggested_questions = [
+        "Top categories by sales in Superstore",
+        "Total profit by region in Superstore",
+        "Sales by segment in Superstore"
+    ] + base_suggestions[:3]
+else:
+    suggested_questions = base_suggestions
 
 st.markdown("##### 💡 Suggested Questions")
 cols = st.columns(3)

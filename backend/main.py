@@ -9,8 +9,10 @@ Exposes REST endpoints for the Product Analytics Chatbot:
 """
 
 import os
+import io
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, status
+import pandas as pd
+from fastapi import FastAPI, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -19,7 +21,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from backend.pipeline import AnalyticsPipeline
-from backend.sql_validator import ALLOWED_SCHEMA
+from backend.sql_validator import get_allowed_schema
+from backend.executor import ingest_dataframe_to_duckdb
 from backend.logger import update_feedback
 
 app = FastAPI(
@@ -84,12 +87,31 @@ def get_schema():
     """
     Returns the allow-listed database schema for display in UI sidebars.
     """
+    current_schema = get_allowed_schema()
     return {
         "tables": {
             table: sorted(list(columns))
-            for table, columns in ALLOWED_SCHEMA.items()
+            for table, columns in current_schema.items()
         }
     }
+
+@app.post("/api/upload")
+async def upload_csv(file: UploadFile = File(...), table_name: Optional[str] = None):
+    """
+    Safely ingests a user-uploaded CSV dataset into DuckDB and registers it in the security allowlist.
+    """
+    try:
+        content = await file.read()
+        df = pd.read_csv(io.BytesIO(content))
+        target_name = table_name or (file.filename.rsplit(".", 1)[0] if file.filename else "custom_dataset")
+        res = ingest_dataframe_to_duckdb(df, target_name)
+        return {
+            "status": "success",
+            "message": f"Table '{res['table_name']}' created successfully with {res['row_count']} rows.",
+            "data": res
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Data ingestion failed: {str(e)}")
 
 @app.get("/api/suggestions")
 def get_suggestions():

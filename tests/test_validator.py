@@ -94,3 +94,12 @@ def test_allow_complex_joins():
     assert "orders" in result.tables_used
     assert "products" in result.tables_used
 
+def test_dynamic_custom_table_registration():
+    from backend.sql_validator import register_custom_table
+    register_custom_table("kaggle_superstore", {"order_id", "category", "sales", "profit"})
+    
+    sql = "SELECT category, SUM(sales) AS total_sales FROM kaggle_superstore GROUP BY category LIMIT 5;"
+    result = validate_and_sanitize_sql(sql)
+    assert result.is_valid is True
+    assert "kaggle_superstore" in result.tables_used
+

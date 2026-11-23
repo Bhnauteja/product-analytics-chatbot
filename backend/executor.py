@@ -91,3 +91,57 @@ def execute_query(
         if con:
             con.close()
 
+def ingest_dataframe_to_duckdb(
+    df: Any,
+    table_name: str,
+    db_path: str = DEFAULT_DB_PATH
+) -> Dict[str, Any]:
+    """
+    Safely ingests a Pandas DataFrame into DuckDB and registers it in the security schema.
+    """
+    from backend.sql_validator import register_custom_table, sanitize_identifier
+    
+    clean_table = sanitize_identifier(table_name)
+    # Sanitize dataframe columns
+    col_mapping = {col: sanitize_identifier(str(col)) for col in df.columns}
+    df_clean = df.rename(columns=col_mapping)
+    
+    con = duckdb.connect(database=db_path, read_only=False)
+    try:
+        con.register("df_temp_upload", df_clean)
+        con.execute(f"CREATE OR REPLACE TABLE {clean_table} AS SELECT * FROM df_temp_upload;")
+        row_count = con.execute(f"SELECT COUNT(*) FROM {clean_table}").fetchone()[0]
+        columns = list(df_clean.columns)
+        
+        # Register in AST allowlist
+        register_custom_table(clean_table, set(columns))
+        
+        return {
+            "table_name": clean_table,
+            "columns": columns,
+            "row_count": row_count,
+            "sample": df_clean.head(5).to_dict(orient="records")
+        }
+    except Exception as e:
+        raise QueryExecutionError(f"Failed to ingest data: {str(e)}")
+    finally:
+        con.close()
+
+def sync_existing_tables(db_path: str = DEFAULT_DB_PATH):
+    """Scans DuckDB on startup and registers all existing tables into the allowlist."""
+    if not os.path.exists(db_path):
+        return
+    try:
+        from backend.sql_validator import register_custom_table
+        con = duckdb.connect(database=db_path, read_only=True)
+        tables = [t[0] for t in con.execute("SHOW TABLES").fetchall()]
+        for tbl in tables:
+            cols = [c[0] for c in con.execute(f"DESCRIBE {tbl}").fetchall()]
+            register_custom_table(tbl, set(cols))
+        con.close()
+    except Exception:
+        pass
+
+# Auto-sync on import
+sync_existing_tables()
+

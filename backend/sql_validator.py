@@ -32,6 +32,25 @@ ALLOWED_SCHEMA: Dict[str, Set[str]] = {
     }
 }
 
+def sanitize_identifier(name: str) -> str:
+    """Sanitizes table/column names to lowercase alphanumeric and underscores only."""
+    import re
+    cleaned = re.sub(r"[^a-zA-Z0-9_]", "_", name.strip().lower())
+    if cleaned and cleaned[0].isdigit():
+        cleaned = f"t_{cleaned}"
+    return cleaned
+
+def register_custom_table(table_name: str, columns: Set[str]) -> Tuple[str, Set[str]]:
+    """Registers a dynamically uploaded table and columns into the AST security allowlist."""
+    clean_table = sanitize_identifier(table_name)
+    clean_cols = {sanitize_identifier(c) for c in columns if c.strip()}
+    ALLOWED_SCHEMA[clean_table] = clean_cols
+    return clean_table, clean_cols
+
+def get_allowed_schema() -> Dict[str, Set[str]]:
+    """Returns a snapshot of the current allow-listed schema."""
+    return dict(ALLOWED_SCHEMA)
+
 BLOCKED_COMMANDS = (
     exp.Drop,
     exp.Delete,

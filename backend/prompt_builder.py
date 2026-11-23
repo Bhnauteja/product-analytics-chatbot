@@ -78,6 +78,24 @@ def load_few_shot_examples() -> List[Dict[str, Any]]:
             return data.get("examples", []) if data else []
     return []
 
+def get_full_schema_documentation() -> str:
+    """Combines core schema documentation with any dynamically uploaded custom tables."""
+    from backend.sql_validator import get_allowed_schema
+    current_schema = get_allowed_schema()
+    
+    doc = SCHEMA_DOCUMENTATION.strip() + "\n"
+    core_tables = {"users", "events", "orders", "products", "sessions"}
+    
+    custom_tables = {t: cols for t, cols in current_schema.items() if t not in core_tables}
+    if custom_tables:
+        doc += "\nCUSTOM / UPLOADED DATASETS:\n"
+        for idx, (t_name, cols) in enumerate(sorted(custom_tables.items()), start=6):
+            doc += f"\n{idx}. {t_name} (\n"
+            for col in sorted(list(cols)):
+                doc += f"    {col},\n"
+            doc += ")\n"
+    return doc
+
 def build_sql_prompt(
     question: str,
     history: Optional[List[Dict[str, str]]] = None,
@@ -89,6 +107,7 @@ def build_sql_prompt(
     today_str = current_date or datetime.now().strftime("%Y-%m-%d")
     semantic_data = load_semantic_layer()
     examples = load_few_shot_examples()
+    schema_doc = get_full_schema_documentation()
     
     # Format metrics
     metrics_text = yaml.dump(semantic_data.get("metrics", {}), default_flow_style=False)
@@ -115,7 +134,7 @@ Your mission is to translate natural-language user questions into precise, highl
 
 CURRENT SYSTEM DATE: {today_str}
 
-{SCHEMA_DOCUMENTATION}
+{schema_doc}
 
 SEMANTIC LAYER (METRIC DEFINITIONS):
 {metrics_text}
